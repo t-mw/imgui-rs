@@ -62,6 +62,7 @@ mod window;
 mod window_draw_list;
 
 pub struct ImGui {
+    context: *mut sys::ImGuiContext,
     // We need to keep ownership of the ImStr values to ensure the *const char pointer
     // lives long enough in case the ImStr contains a Cow::Owned
     ini_filename: Option<ImString>,
@@ -130,13 +131,16 @@ impl FrameSize {
 
 impl ImGui {
     pub fn init() -> ImGui {
-        unsafe {
-            sys::igCreateContext(ptr::null_mut());
-        }
+        let context = unsafe { sys::igCreateContext(ptr::null_mut()) };
+
         ImGui {
+            context,
             ini_filename: None,
             log_filename: None,
         }
+    }
+    pub fn set_context(&mut self) {
+        unsafe { sys::igSetCurrentContext(self.context) };
     }
     fn io(&self) -> &sys::ImGuiIO {
         unsafe { &*sys::igGetIO() }
@@ -428,7 +432,7 @@ impl Drop for ImGui {
     fn drop(&mut self) {
         unsafe {
             CURRENT_UI = None;
-            sys::igDestroyContext(ptr::null_mut());
+            sys::igDestroyContext(self.context);
         }
     }
 }
